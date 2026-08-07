@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Environnement virtuel
+venv/
+.venv/
+env/
+ENV/
+
+# Notebooks - sorties
+.ipynb_checkpoints/
+*/output_*/
+.ipynb_metadata/
+
+# IDE / éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Données brutes et sorties volumineuses
+data/
+logs_output/
+*.csv
+*.log
+*.gz
+
+# Système
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Secrets
+*.env
+.env

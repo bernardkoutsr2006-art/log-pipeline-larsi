@@ -1,0 +1,203 @@
+% ============================================================
+%  Rapport de stage — Section Visualisation des données
+%  (graphiques produits par Log_Visualizer.ipynb, Fig 3.3–3.11)
+%  À inclure dans votre mémoire (chapitre 3).
+%  Remplacez X par le numéro de section approprié.
+% ============================================================
+
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+% Dossier des figures — adapter le chemin au besoin
+% (les figures 3.10 et 3.11 sont générées en exécutant le notebook)
+\newcommand{\figdir}{logs_output/Ancien_site web/Access_log/figures/}
+
+\begin{document}
+
+% ------------------------------------------------------------
+\section{Visualisation des données}
+% ------------------------------------------------------------
+
+L'analyse exploratoire des données (EDA) constitue une étape essentielle avant toute modélisation : elle permet de comprendre la structure des journaux, d'identifier les distributions sous-jacentes des variables et de guider les choix d'ingénierie des caractéristiques. Cette section présente les visualisations produites par le notebook \texttt{Log\_Visualizer.ipynb} à partir du fichier nettoyé \texttt{Access\_log\_cleaned.csv} (41~433 lignes). L'ensemble des graphiques a été généré avec \texttt{matplotlib} et \texttt{seaborn}, puis exporté au format PNG en haute résolution (300~DPI) dans le répertoire \texttt{logs\_output/figures/}.
+
+% ------------------------------------------------------------
+\subsection{Répartition des logs par année et mois}
+% ------------------------------------------------------------
+
+La figure~\ref{fig:heatmap} présente une heatmap (carte de chaleur) croisant le mois et l'année de chaque requête, la couleur (dégradé \og jaune-rouge \fg{}) reflétant le nombre de journaux. L'objectif est de visualiser d'un seul coup d'œil la répartition temporelle globale du jeu de données et d'identifier d'éventuels pics d'activité.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_3_heatmap_annee_mois.png}
+  \caption{Répartition des logs par année et mois (heatmap).}
+  \label{fig:heatmap}
+\end{figure}
+
+On observe que les journaux sont concentrés sur deux mois consécutifs : \textbf{juillet 2021} avec 17~930 requêtes et \textbf{août 2021} avec 23~503 requêtes, soit un total de 41~433 requêtes. Cette concentration sur une courte période traduit la fenêtre d'observation du serveur web et confirme qu'aucune donnée antérieure ou postérieure ne biaise l'analyse. La structure binaire de la heatmap (deux cellules actives) valide également l'homogénéité de la période d'étude, propice à une analyse cohérente des comportements.
+
+% ------------------------------------------------------------
+\subsection{Répartition temporelle des logs}
+% ------------------------------------------------------------
+
+La figure~\ref{fig:temporel} représente le nombre de logs par mois, avec une échelle logarithmique en ordonnée afin de comparer des volumes très différents sans écraser les petites valeurs. Chaque barre est annotée avec son effectif exact.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_4_repartition_temporelle.png}
+  \caption{Répartition temporelle des logs par mois (échelle logarithmique).}
+  \label{fig:temporel}
+\end{figure}
+
+Le graphique confirme la domination d'août 2021 (23~503 logs, soit 56{,}7~\%) sur juillet 2021 (17~930 logs, soit 43{,}3~\%), avec un volume globalement stable et aucun mois entièrement vide. L'échelle logarithmique permet de garder lisible l'ensemble de la série malgré la différence de volume entre les deux mois. Cette répartition indique une activité soutenue sur toute la période, sans rupture brutale susceptible d'introduire un biais dans les futures analyses de corrélation ou de clustering.
+
+% ------------------------------------------------------------
+\subsection{Distribution des méthodes HTTP}
+% ------------------------------------------------------------
+
+La figure~\ref{fig:methodes} montre, sous forme de diagramme en barres horizontales, les dix méthodes HTTP les plus fréquentes, annotées de leur pourcentage d'apparition.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{\figdir fig3_5_distribution_methodes.png}
+  \caption{Distribution des méthodes HTTP.}
+  \label{fig:methodes}
+\end{figure}
+
+Trois méthodes sont présentes dans le jeu de données :
+\begin{itemize}
+  \item \textbf{GET} : 38~289 requêtes, soit \textbf{89{,}3~\%} des logs --- la méthode de lecture prépondérante, conforme au trafic d'un site web public ;
+  \item \textbf{HEAD} : 4~378 requêtes, soit \textbf{10{,}2~\%} --- souvent associée à des bots ou des outils de surveillance qui ne récupèrent que les en-têtes ;
+  \item \textbf{POST} : 232 requêtes, soit \textbf{0{,}5~\%} --- très minoritaire, ce qui correspond à un site essentiellement en lecture.
+\end{itemize}
+
+Cette forte concentration sur GET est attendue et motivera, au moment de l'encodage, l'utilisation d'un \emph{rarity encoding} (Section sur l'encodage) plutôt qu'un one-hot encoding : la colonne \texttt{method\_encoded} obtenue est d'ailleurs fortement asymétrique (moyenne de 0{,}196, maximum de 0{,}996), ce qui justifie sa transformation logarithmique.
+
+% ------------------------------------------------------------
+\subsection{Distribution des codes de statut HTTP}
+% ------------------------------------------------------------
+
+La figure~\ref{fig:status} présente la distribution des codes de statut HTTP, chaque code étant coloré selon sa catégorie : bleu pour les succès (2xx), vert pour les redirections (3xx), orange pour les erreurs client (4xx) et rouge pour les erreurs serveur (5xx).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_6_distribution_statuscode.png}
+  \caption{Distribution des codes de statut HTTP.}
+  \label{fig:status}
+\end{figure}
+
+Le jeu de données contient exclusivement des redirections : le code \textbf{302} (41~411 occurrences, 99{,}9~\%) et le code \textbf{301} (22 occurrences, 0{,}1~\%). Cette particularité découle de la configuration du serveur, qui répond systématiquement par une redirection temporaire (302). Elle a une conséquence importante : la variable \texttt{status\_code\_category\_encoded} est \textbf{constante à zéro} sur l'ensemble des observations (toutes les requêtes appartiennent à la même catégorie \og 3xx \fg{}). Comme mentionné dans la section sur l'encodage, une variable constante n'apporte aucune information discriminante aux modèles et devra être écartée lors de la sélection des caractéristiques.
+
+% ------------------------------------------------------------
+\subsection{Distribution des référents}
+% ------------------------------------------------------------
+
+La figure~\ref{fig:referer} montre les dix référents (sites d'origine) les plus fréquents, après exclusion des valeurs manquantes (\texttt{unknown}, \texttt{-}, chaîne vide).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_7_distribution_referer.png}
+  \caption{Top 10 des référents les plus fréquents.}
+  \label{fig:referer}
+\end{figure}
+
+Les référents dominants proviennent de \textbf{moteurs de recherche Google} (\texttt{https://www.google.com/} avec 2~384 occurrences, soit 5{,}56~\%, suivi de sa variante \texttt{http://} avec 569 occurrences), ainsi que de domaines institutionnels locaux (\texttt{cic.univ-lome.tg}, \texttt{gbif.univ-lome.tg}). La faible proportion globale de référents présents (8{,}6~\% de requêtes avec un \texttt{referer\_is\_present} non nul) indique que la majorité du trafic arrive en accès direct. Ce constat explique l'asymétrie extrême des variables liées au référent (\texttt{referer\_path\_depth}, \texttt{referer\_query\_special\_chars\_count}, \ldots), toutes à médiane nulle, et justifie leur transformation logarithmique avant standardisation.
+
+% ------------------------------------------------------------
+\subsection{Distribution des User-Agents}
+% ------------------------------------------------------------
+
+La figure~\ref{fig:ua} présente les dix chaînes \texttt{User-Agent} les plus fréquentes, après exclusion de la valeur \texttt{unknown}.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_8_distribution_useragent.png}
+  \caption{Top 10 des User-Agents les plus fréquents.}
+  \label{fig:ua}
+\end{figure}
+
+Le User-Agent le plus représenté est le \textbf{crawler de Bing} (\texttt{bingbot/2.0}, 10~354 occurrences, soit 24{,}1~\%), suivi d'agents non renseignés (\texttt{-}, 3~415, soit 8{,}0~\%), du navigateur Chrome sous Windows (3~060, soit 7{,}1~\%) et d'autres robots d'indexation (\texttt{DotBot}, \texttt{Googlebot}). La forte présence de bots de recherche (Bing, Google, DotBot) révèle que près de 38~\% des requêtes proviennent d'outils automatisés légitimes, cohérent avec la variable binaire \texttt{is\_bot} dont 37{,}8~\% des valeurs valent 1. Cette proportion importante de trafic automatisé est un point d'attention pour la détection d'intrusion : elle constitue un \emph{bruit de fond} auquel les modèles doivent être robustes, car les bots légitimes ne doivent pas être confondus avec des comportements malveillants.
+
+% ------------------------------------------------------------
+\subsection{Matrice de corrélation}
+% ------------------------------------------------------------
+
+Avant de construire la matrice de corrélation, les variables numériques issues de l'ingénierie des caractéristiques (Section sur l'ingénierie des caractéristiques) sont réunies dans une matrice $X$ de dimension $41\,433 \times 31$, puis standardisées (\texttt{StandardScaler}). La figure~\ref{fig:corr} affiche le triangle inférieur de la matrice des corrélations de Pearson, les coefficients variant de $-1$ (corrélation négative parfaite) à $+1$ (corrélation positive parfaite).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_9_matrice_correlation.png}
+  \caption{Matrice de corrélation de Pearson des variables numériques.}
+  \label{fig:corr}
+\end{figure}
+
+L'examen de la matrice met en évidence plusieurs groupes de variables fortement corrélées entre elles :
+\begin{itemize}
+  \item les descripteurs de profondeur d'URL (\texttt{url\_path\_depth}, \texttt{url\_path\_struct\_entropy}, \texttt{url\_path\_special\_chars\_count}, \texttt{is\_hierarchical}) avec des corrélations supérieures à 0{,}85, la plus élevée atteignant \textbf{0{,}995} entre \texttt{url\_path\_depth} et \texttt{url\_path\_struct\_entropy} ;
+  \item les descripteurs du référent, avec une corrélation de \textbf{0{,}987} entre \texttt{referer\_path\_struct\_entropy} et \texttt{referer\_path\_depth}, et de 0{,}925 entre le nombre de paramètres de requête et le nombre de caractères spéciaux ;
+  \item les caractéristiques du User-Agent, telles que \texttt{user\_agent\_length} et \texttt{user\_agent\_total\_special\_chars} (0{,}890) ;
+  \item le couple \texttt{response\_size}--\texttt{method\_encoded} (0{,}833), qui traduit le lien entre la taille de réponse et la méthode utilisée.
+\end{itemize}
+
+Ces fortes corrélations signalent une \textbf{redondance d'information} entre certaines variables : elles n'apportent pas de valeur ajoutée distincte aux modèles et peuvent favoriser des instabilités numériques. Ce constat justifie les étapes de sélection de variables et de réduction de dimensionnalité (analyse en composantes principales) présentées ci-après.
+
+% ------------------------------------------------------------
+\subsection{Clustering hiérarchique des variables}
+% ------------------------------------------------------------
+
+Pour structurer l'analyse des redondances, un \textbf{clustering hiérarchique} est appliqué sur la matrice de corrélation (méthode de Ward). La figure~\ref{fig:clust} réordonne les lignes et colonnes de la matrice selon l'arbre hiérarchique obtenu : les variables proches (donc corrélées) apparaissent regroupées le long de la diagonale, formant des blocs visuellement distincts.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_10_correlation_clustering.png}
+  \caption{Matrice de corrélation réordonnée par clustering hiérarchique (méthode de Ward).}
+  \label{fig:clust}
+\end{figure}
+
+Sur les 27 variables non constantes, \textbf{22 clusters} ont été identifiés. Les regroupements principaux confirment l'analyse précédente :
+\begin{itemize}
+  \item un bloc \og URL \fg{} regroupant \texttt{url\_path\_depth}, \texttt{url\_path\_struct\_entropy} et \texttt{url\_path\_special\_chars\_count} ;
+  \item un bloc \og référent \fg{} (\texttt{referer\_path\_depth}, \texttt{referer\_path\_struct\_entropy}) et un bloc \og requête \fg{} (\texttt{nbre\_total\_url\_query\_params}, \texttt{url\_query\_special\_chars\_count}) ;
+  \item un bloc \og requête référent \fg{} (\texttt{nbre\_total\_referer\_query\_params}, \texttt{referer\_query\_special\_chars\_count}).
+\end{itemize}
+
+Les autres variables (temporelles, IP, User-Agent) forment des clusters unitaires, signe de leur relative indépendance. Cette structure permet d'orienter le choix des variables à conserver : conserver un représentant par cluster réduit la redondance tout en préservant l'essentiel de l'information.
+
+% ------------------------------------------------------------
+\subsection{Variance cumulée expliquée par les composantes principales}
+% ------------------------------------------------------------
+
+Enfin, une \textbf{analyse en composantes principales (ACP)} est réalisée sur la matrice standardisée afin de quantifier la réduction de dimensionnalité possible. La figure~\ref{fig:pca} trace la variance cumulée expliquée en fonction du nombre de composantes, avec un seuil fixé à 99~\% et la ligne verticale indiquant le nombre minimal de composantes permettant de l'atteindre.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{\figdir fig3_11_pca_variance_cumulee.png}
+  \caption{Variance cumulée expliquée par les composantes principales.}
+  \label{fig:pca}
+\end{figure}
+
+Les résultats montrent une décroissance régulière et sans plateau marqué : la première composante explique 20{,}4~\% de la variance, et il faut \textbf{20 composantes} pour atteindre 99~\% de variance expliquée sur 27 variables initiales. Cette réduction modérée (27 $\to$ 20) traduit une faible structure latente globale : les variables ne sont que partiellement corrélées entre elles, cohérent avec les nombreux clusters unitaires observés précédemment. Pour la modélisation non supervisée (PCA, Isolation Forest), cette propriété signifie que la projection en faible dimension perdrait de l'information, et qu'il est préférable de conserver l'ensemble des variables, éventuellement allégé de la redondance identifiée par le clustering hiérarchique, plutôt que de réduire drastiquement la dimensionnalité.
+
+% ------------------------------------------------------------
+\subsection{Synthèse}
+% ------------------------------------------------------------
+
+Les visualisations ont mis en évidence les caractéristiques structurantes du jeu de données :
+\begin{itemize}
+  \item une fenêtre d'observation courte et homogène (juillet--août 2021), dominée par août ;
+  \item un trafic essentiellement composé de requêtes \textbf{GET} (89{,}3~\%) avec une part notable de bots d'indexation (\texttt{is\_bot} à 37{,}8~\%) ;
+  \item des codes de statut exclusivement en \textbf{3xx} (301/302), rendant la catégorie de statut non informative ;
+  \item une forte redondance entre certains descripteurs d'URL, de référent et de User-Agent, identifiée par la matrice de corrélation et le clustering hiérarchique ;
+  \item une structure latente faible (20 composantes pour 99~\% de variance), plaidant pour une sélection de variables guidée par les clusters plutôt que pour une réduction dimensionnelle agressive.
+\end{itemize}
+
+Ces observations guident directement les choix d'encodage, de transformation logarithmique et de standardisation détaillés dans les sections précédentes, ainsi que le choix des algorithmes de détection non supervisée présentés dans la suite du mémoire.
+
+\end{document}
