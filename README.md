@@ -29,10 +29,10 @@ Load ─────► Combined_Access_Logs.csv / Access_log_cleaned.csv
 Les caractéristiques extraites couvrent plusieurs dimensions comportementales :
 
 - **Temporelles** : encodage cyclique de l'heure (`sin`/`cos`), temps normalisé en secondes ;
-- **IP** : nombre de requêtes, étalement temporel, taux de requêtes/seconde, régularité des intervalles, activité de sous-réseau, diversité des méthodes ;
+- **IP** : nombre de requêtes, étalement temporel, taux de requêtes/seconde, maximum de requêtes par seconde (`ip_max_requests_per_sec`), régularité des intervalles, activité de sous-réseau, diversité des méthodes, pays d'origine (GeoIP) ;
 - **URL / Référent** : profondeur de chemin, entropie de Shannon, caractères spéciaux, paramètres de requête et de fragment ;
 - **User-Agent** : longueur, entropie, caractères spéciaux, détection de bots ;
-- **Encodage** : rareté des méthodes (`method_encoded`), catégorie de statut HTTP, logarithme `log(1+x)`, standardisation centrée-réduite.
+- **Encodage** : rareté des méthodes (`method_encoded`), du pays (`country_encoded`), catégorie de statut HTTP, logarithme `log(1+x)`, standardisation centrée-réduite.
 
 ## Résultats clés
 
@@ -43,11 +43,15 @@ Les caractéristiques extraites couvrent plusieurs dimensions comportementales :
 ## Prérequis
 
 - Python 3.12+
-- `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `seaborn`, `scipy`
+- `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `seaborn`, `scipy`, `geoip2`
 
 ```bash
-pip install pandas numpy scikit-learn matplotlib seaborn scipy
+pip install pandas numpy scikit-learn matplotlib seaborn scipy geoip2
 ```
+
+La variable `country` utilise la base gratuite **DB-IP Lite Country** (format `.mmdb`, licence CC BY 4.0) : télécharger le fichier du mois sur https://db-ip.com/db/download/ip-to-country-lite, le décompresser et renseigner son chemin dans `GEOIP_DB` (`Log_Cleaner.ipynb`, cellule « Chemins »). Sans la base, `country` vaut `unknown`.
+
+IP Geolocation by [DB-IP](https://db-ip.com).
 
 ## Structure du dépôt
 
